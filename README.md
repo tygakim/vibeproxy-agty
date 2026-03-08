@@ -11,7 +11,7 @@
 <a href="https://github.com/automazeio/vibeproxy"><img alt="Star this repo" src="https://img.shields.io/github/stars/automazeio/vibeproxy.svg?style=social&amp;label=Star%20this%20repo&amp;maxAge=60" style="max-width: 100%;"></a></p>
 </p>
 
-**Stop paying twice for AI.** VibeProxy is a beautiful native macOS menu bar app that lets you use your existing Claude Code, ChatGPT, **Gemini**, **Qwen**, **Antigravity**, and **Z.AI GLM** subscriptions with powerful AI coding tools like **[Factory Droids](https://app.factory.ai/r/FM8BJHFQ)** – no separate API keys required.
+**Stop paying twice for AI.** VibeProxy is a native macOS menu bar app that lets you use your existing Claude Code, ChatGPT, **Gemini**, **Kimi Code**, **Qwen**, **Antigravity**, and **Z.AI GLM** access with powerful AI coding tools like **[Factory Droid](https://app.factory.ai/r/FM8BJHFQ)** without separate API keys for every tool.
 
 Built on [CLIProxyAPIPlus](https://github.com/router-for-me/CLIProxyAPIPlus), it handles OAuth authentication, token management, and API routing automatically. One click to authenticate, zero friction to code.
 
@@ -24,7 +24,7 @@ Built on [CLIProxyAPIPlus](https://github.com/router-for-me/CLIProxyAPIPlus), it
 > [!TIP]
 > 📣 **NEW: Vercel AI Gateway Integration!**<br>Route your Claude requests through [Vercel's officially sanctioned AI Gateway](https://vercel.com/docs/ai-gateway) for safer access to your Claude Max subscription. No more worrying about account risks from using OAuth tokens directly!
 >
-> **Latest models supported:** Gemini 3 Pro (via Antigravity), GPT-5.1 / GPT-5.1 Codex, Claude Sonnet 4.5 / Opus 4.5 with extended thinking, GitHub Copilot, and Z.AI GLM-4.7! 🚀 
+> **Current curated model families:** Claude Opus/Sonnet 4.5 with thinking aliases, GPT-5.x and Codex, Gemini 3 / 2.5, Qwen coder models, Kimi K2.5, GitHub Copilot, and Z.AI GLM models. 🚀
 > 
 > **Setup Guides:**
 > - [Factory CLI Setup →](FACTORY_SETUP.md) - Use Factory Droids with your AI subscriptions
@@ -36,7 +36,7 @@ Built on [CLIProxyAPIPlus](https://github.com/router-for-me/CLIProxyAPIPlus), it
 
 - 🎯 **Native macOS Experience** - Clean, native SwiftUI interface that feels right at home on macOS
 - 🚀 **One-Click Server Management** - Start/stop the proxy server from your menu bar
-- 🔐 **Easy Authentication** - Authenticate with Codex, Claude Code, Gemini, Qwen, Antigravity (OAuth), and Z.AI GLM (API key) directly from the app
+- 🔐 **Easy Authentication** - Authenticate with Codex, Claude Code, Gemini, Kimi Code, Qwen, Antigravity (OAuth), and Z.AI GLM (API key) directly from the app
 - 🛡️ **Vercel AI Gateway** - Route Claude requests through [Vercel's AI Gateway](https://vercel.com/docs/ai-gateway) for safer access to your Claude Max subscription without risking your account from direct OAuth token usage
 - 👥 **Multi-Account Support** - Connect multiple accounts per provider with automatic round-robin distribution and failover when rate-limited
 - 🎚️ **Provider Priority** - Enable/disable providers to control which models are available (instant hot reload)
@@ -72,11 +72,11 @@ Want to build it yourself? See [**INSTALLATION.md**](INSTALLATION.md) for detail
 1. Launch VibeProxy - you'll see a menu bar icon
 2. Click the icon and select "Open Settings"
 3. The server will start automatically
-4. Click "Connect" for Claude Code, Codex, Gemini, Qwen, or Antigravity to authenticate, or "Add Account" for Z.AI GLM to enter your API key
+4. Click "Add Account" for Claude Code, Codex, Gemini, Kimi Code, Qwen, or Antigravity to authenticate, or add a Z.AI GLM API key
 
 ### Authentication
 
-When you click "Connect":
+When you click "Add Account":
 1. Your browser opens with the OAuth page
 2. Complete the authentication in the browser
 3. VibeProxy automatically detects your credentials
@@ -98,27 +98,27 @@ When you click "Connect":
 
 ```
 VibeProxy/
-├── Sources/
-│   ├── main.swift              # App entry point
-│   ├── AppDelegate.swift       # Menu bar & window management
-│   ├── ServerManager.swift     # Server process control & auth
-│   ├── SettingsView.swift      # Main UI
-│   ├── AuthStatus.swift        # Auth file monitoring
-│   └── Resources/
-│       ├── AppIcon.iconset     # App icon
-│       ├── AppIcon.icns        # App icon
-│       ├── cli-proxy-api-plus  # CLIProxyAPIPlus binary
-│       ├── config.yaml         # CLIProxyAPIPlus config
-│       ├── icon-active.png     # Menu bar icon (active)
-│       ├── icon-inactive.png   # Menu bar icon (inactive)
-│       ├── icon-claude.png     # Claude Code service icon
-│       ├── icon-codex.png      # Codex service icon
-│       ├── icon-gemini.png     # Gemini service icon
-│       ├── icon-qwen.png       # Qwen service icon
-│       └── icon-zai.png        # Z.AI GLM service icon
-├── Package.swift               # Swift Package Manager config
-├── Info.plist                  # macOS app metadata
-├── build.sh                    # Resource bundling script
+├── src/
+│   ├── Package.swift           # Swift Package Manager config
+│   ├── Info.plist              # macOS app metadata
+│   └── Sources/
+│       ├── main.swift          # App entry point
+│       ├── AppDelegate.swift   # Menu bar & window management
+│       ├── ServerManager.swift # Server process control & auth
+│       ├── SettingsView.swift  # Main UI
+│       ├── AuthStatus.swift    # Auth file monitoring
+│       └── Resources/
+│           ├── AppIcon.icns    # App icon
+│           ├── cli-proxy-api-plus
+│           ├── config.yaml
+│           ├── icon-active.png
+│           ├── icon-inactive.png
+│           ├── icon-claude.png
+│           ├── icon-codex.png
+│           ├── icon-gemini.png
+│           ├── icon-kimi.png
+│           ├── icon-qwen.png
+│           └── icon-zai.png
 ├── create-app-bundle.sh        # App bundle creation script
 └── Makefile                    # Build automation
 ```

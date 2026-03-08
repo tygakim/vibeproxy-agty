@@ -357,6 +357,20 @@ struct SettingsView: View {
                     ) { EmptyView() }
 
                     ServiceRow(
+                        serviceType: .kimi,
+                        iconName: "icon-kimi.png",
+                        accounts: authManager.accounts(for: .kimi),
+                        isAuthenticating: authenticatingService == .kimi,
+                        helpText: "Kimi Code provides OAuth-based access to Moonshot AI coding models, including Kimi K2.5.",
+                        isEnabled: serverManager.isProviderEnabled("kimi"),
+                        customTitle: nil,
+                        onConnect: { connectService(.kimi) },
+                        onDisconnect: { account in disconnectAccount(account) },
+                        onToggleEnabled: { enabled in serverManager.setProviderEnabled("kimi", enabled: enabled) },
+                        onExpandChange: { expanded in expandedRowCount += expanded ? 1 : -1 }
+                    ) { EmptyView() }
+
+                    ServiceRow(
                         serviceType: .copilot,
                         iconName: "icon-copilot.png",
                         accounts: authManager.accounts(for: .copilot),
@@ -556,6 +570,7 @@ struct SettingsView: View {
         case .codex: command = .codexLogin
         case .copilot: command = .copilotLogin
         case .gemini: command = .geminiLogin
+        case .kimi: command = .kimiLogin
         case .qwen:
             authenticatingService = nil
             return // handled separately with email prompt
@@ -598,6 +613,8 @@ struct SettingsView: View {
             return "🌐 GitHub Copilot authentication started!\n\nPlease visit github.com/login/device and enter the code shown.\n\nThe app will automatically detect your credentials."
         case .gemini:
             return "🌐 Browser opened for Gemini authentication.\n\nPlease complete the login in your browser.\n\n⚠️ Note: If you have multiple projects, the default project will be used."
+        case .kimi:
+            return "🌐 Browser opened for Kimi Code authentication.\n\nPlease complete the login in your browser.\n\nThe app will automatically detect your credentials."
         case .qwen:
             return "🌐 Browser opened for Qwen authentication.\n\nPlease complete the login in your browser."
         case .antigravity:

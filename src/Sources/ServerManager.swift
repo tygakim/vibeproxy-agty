@@ -93,6 +93,7 @@ class ServerManager: ObservableObject {
         "codex": "codex",
         "gemini": "gemini-cli",
         "github-copilot": "github-copilot",
+        "kimi": "kimi",
         "antigravity": "antigravity",
         "qwen": "qwen"
     ]
@@ -292,6 +293,8 @@ class ServerManager: ObservableObject {
             authProcess.arguments = ["--config", configPath, "-github-copilot-login"]
         case .geminiLogin:
             authProcess.arguments = ["--config", configPath, "-login"]
+        case .kimiLogin:
+            authProcess.arguments = ["--config", configPath, "-kimi-login"]
         case .qwenLogin(let email):
             authProcess.arguments = ["--config", configPath, "-qwen-login"]
             qwenEmail = email
@@ -673,6 +676,7 @@ enum AuthCommand: Equatable {
     case codexLogin
     case copilotLogin
     case geminiLogin
+    case kimiLogin
     case qwenLogin(email: String)
     case antigravityLogin
 }
