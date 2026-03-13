@@ -71,6 +71,26 @@ class ServerManager: ObservableObject {
     }
     var onVercelConfigChanged: (() -> Void)?
 
+    /// OpenClaw preset configuration for localhost-only agent routing
+    @Published var openClawPresetEnabled: Bool = false {
+        didSet {
+            UserDefaults.standard.set(openClawPresetEnabled, forKey: "openClawPresetEnabled")
+            ensureOpenClawApiKey()
+            reloadGeneratedConfig(reason: openClawPresetEnabled ? "Enabled OpenClaw preset" : "Disabled OpenClaw preset")
+            onOpenClawConfigChanged?()
+        }
+    }
+    @Published var openClawApiKey: String = "" {
+        didSet {
+            UserDefaults.standard.set(openClawApiKey, forKey: "openClawApiKey")
+            if oldValue != openClawApiKey {
+                reloadGeneratedConfig(reason: "Updated OpenClaw API key")
+                onOpenClawConfigChanged?()
+            }
+        }
+    }
+    var onOpenClawConfigChanged: (() -> Void)?
+
     /// Helper class to capture output text across closures
     private class OutputCapture {
         var text = ""
@@ -105,6 +125,9 @@ class ServerManager: ObservableObject {
         }
         vercelGatewayEnabled = UserDefaults.standard.bool(forKey: "vercelGatewayEnabled")
         vercelApiKey = UserDefaults.standard.string(forKey: "vercelApiKey") ?? ""
+        openClawPresetEnabled = UserDefaults.standard.bool(forKey: "openClawPresetEnabled")
+        openClawApiKey = UserDefaults.standard.string(forKey: "openClawApiKey") ?? ""
+        ensureOpenClawApiKey()
     }
 
     /// Check if a provider is enabled (defaults to true if not set)
@@ -120,6 +143,16 @@ class ServerManager: ObservableObject {
         // Regenerate config - CLIProxyAPI hot reloads config.yaml automatically
         _ = getConfigPath()
         addLog("Config updated (hot reload)")
+    }
+
+    func regenerateOpenClawApiKey() {
+        openClawApiKey = Self.makeLocalApiKey(prefix: "openclaw")
+    }
+
+    func maskedOpenClawApiKey() -> String {
+        guard !openClawApiKey.isEmpty else { return "" }
+        if openClawApiKey.count <= 12 { return openClawApiKey }
+        return "\(openClawApiKey.prefix(8))••••\(openClawApiKey.suffix(4))"
     }
     
     deinit {
@@ -528,6 +561,7 @@ class ServerManager: ObservableObject {
 
         let bundledConfigPath = (resourcePath as NSString).appendingPathComponent("config.yaml")
         let authDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".cli-proxy-api")
+        let mergedConfigPath = authDir.appendingPathComponent("merged-config.yaml")
 
         // Check for Z.AI auth files
         var zaiApiKeys: [String] = []
@@ -549,8 +583,13 @@ class ServerManager: ObservableObject {
             }
         }
 
-        // If no Z.AI keys and no disabled providers, use bundled config
-        guard !zaiApiKeys.isEmpty || !disabledProviders.isEmpty else {
+        let hasOpenClawPreset = openClawPresetEnabled && !openClawApiKey.isEmpty
+
+        // If no dynamic additions are needed, use bundled config
+        guard !zaiApiKeys.isEmpty || !disabledProviders.isEmpty || hasOpenClawPreset else {
+            if FileManager.default.fileExists(atPath: mergedConfigPath.path) {
+                try? FileManager.default.removeItem(at: mergedConfigPath)
+            }
             return bundledConfigPath
         }
 
@@ -560,6 +599,16 @@ class ServerManager: ObservableObject {
         }
         
         var additionalConfig = ""
+
+        if hasOpenClawPreset {
+            let escapedKey = Self.escapeYAMLString(openClawApiKey)
+            additionalConfig += """
+
+# OpenClaw local API key (auto-added by VibeProxy)
+api-keys:
+  - "\(escapedKey)"
+"""
+        }
 
         // Build oauth-excluded-models section for disabled providers
         if !disabledProviders.isEmpty {
@@ -576,6 +625,28 @@ oauth-excluded-models:
             }
         }
 
+        if hasOpenClawPreset {
+            additionalConfig += """
+
+# OpenClaw-friendly model aliases (auto-added by VibeProxy)
+oauth-model-alias:
+  antigravity:
+    - name: "claude-opus-4-6-thinking"
+      alias: "ag-claude-opus-4-6"
+      fork: true
+    - name: "claude-sonnet-4-6"
+      alias: "ag-claude-sonnet-4-6"
+      fork: true
+  claude:
+    - name: "claude-opus-4-6"
+      alias: "cc-claude-opus-4-6"
+      fork: true
+    - name: "claude-sonnet-4-6"
+      alias: "cc-claude-sonnet-4-6"
+      fork: true
+"""
+        }
+
         // Build Z.AI openai-compatibility section (only if Z.AI is enabled)
         if !zaiApiKeys.isEmpty && isProviderEnabled("zai") {
             additionalConfig += """
@@ -588,12 +659,7 @@ openai-compatibility:
 
 """
             for key in zaiApiKeys {
-                // Escape special YAML characters in double-quoted strings
-                let escapedKey = key
-                    .replacingOccurrences(of: "\\", with: "\\\\")
-                    .replacingOccurrences(of: "\"", with: "\\\"")
-                    .replacingOccurrences(of: "\n", with: "\\n")
-                    .replacingOccurrences(of: "\t", with: "\\t")
+                let escapedKey = Self.escapeYAMLString(key)
                 additionalConfig += "      - api-key: \"\(escapedKey)\"\n"
             }
             additionalConfig += """
@@ -610,8 +676,6 @@ openai-compatibility:
         }
 
         let mergedContent = bundledContent + additionalConfig
-        let mergedConfigPath = authDir.appendingPathComponent("merged-config.yaml")
-        
         do {
             try mergedContent.write(to: mergedConfigPath, atomically: true, encoding: .utf8)
             // Set secure permissions (0600 - owner read/write only) since config contains API keys
@@ -621,6 +685,32 @@ openai-compatibility:
             NSLog("[ServerManager] Failed to write merged config: %@", error.localizedDescription)
             return bundledConfigPath
         }
+    }
+
+    private func ensureOpenClawApiKey() {
+        if openClawApiKey.isEmpty {
+            openClawApiKey = Self.makeLocalApiKey(prefix: "openclaw")
+        }
+    }
+
+    private func reloadGeneratedConfig(reason: String) {
+        guard !reason.isEmpty else { return }
+        _ = getConfigPath()
+        addLog("Config updated (hot reload)")
+        addLog("✓ \(reason)")
+    }
+
+    private static func makeLocalApiKey(prefix: String) -> String {
+        let token = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+        return "\(prefix)-\(token)"
+    }
+
+    private static func escapeYAMLString(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+            .replacingOccurrences(of: "\n", with: "\\n")
+            .replacingOccurrences(of: "\t", with: "\\t")
     }
     
     func getLogs() -> [String] {

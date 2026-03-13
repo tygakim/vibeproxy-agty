@@ -22,6 +22,13 @@ struct VercelGatewayConfig {
     var isActive: Bool { enabled && !apiKey.isEmpty }
 }
 
+struct OpenClawConfig {
+    var enabled: Bool
+    var apiKey: String
+
+    var isActive: Bool { enabled && !apiKey.isEmpty }
+}
+
 class ThinkingProxy {
     private var listener: NWListener?
     let proxyPort: UInt16 = 8317
@@ -31,6 +38,7 @@ class ThinkingProxy {
     private let stateQueue = DispatchQueue(label: "io.automaze.vibeproxy.thinking-proxy-state")
 
     var vercelConfig = VercelGatewayConfig(enabled: false, apiKey: "")
+    var openClawConfig = OpenClawConfig(enabled: false, apiKey: "")
     
     private enum Config {
         static let hardTokenCap = 32000
@@ -38,6 +46,13 @@ class ThinkingProxy {
         static let headroomRatio = 0.1
         static let vercelGatewayHost = "ai-gateway.vercel.sh"
         static let anthropicVersion = "2023-06-01"
+        static let allowedPlaceholderApiKeys: Set<String> = [
+            "dummy",
+            "dummy-not-used",
+            "not-used",
+            "placeholder",
+            "unused"
+        ]
     }
     
     /**
@@ -256,6 +271,12 @@ class ThinkingProxy {
             let ampPath = rewrittenPath
             NSLog("[ThinkingProxy] Amp management request detected, forwarding to ampcode.com: \(ampPath)")
             forwardToAmp(method: method, path: ampPath, version: httpVersion, headers: headers, body: bodyString, originalConnection: connection)
+            return
+        }
+
+        if isCliProxyPath && !isIncomingOpenClawCredentialAllowed(headers) {
+            NSLog("[ThinkingProxy] Rejected request with invalid OpenClaw API key")
+            sendError(to: connection, statusCode: 401, message: "Invalid API key")
             return
         }
         
@@ -629,6 +650,37 @@ class ThinkingProxy {
     private enum BetaHeaders {
         static let interleavedThinking = "interleaved-thinking-2025-05-14"
     }
+
+    private func isIncomingOpenClawCredentialAllowed(_ headers: [(String, String)]) -> Bool {
+        guard openClawConfig.isActive else { return true }
+
+        let providedCredentials = incomingCredentials(from: headers)
+        guard !providedCredentials.isEmpty else { return true }
+
+        return providedCredentials.allSatisfy { credential in
+            let normalized = credential.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !normalized.isEmpty else { return true }
+            if normalized == openClawConfig.apiKey { return true }
+            return Config.allowedPlaceholderApiKeys.contains(normalized.lowercased())
+        }
+    }
+
+    private func incomingCredentials(from headers: [(String, String)]) -> [String] {
+        headers.compactMap { name, value in
+            switch name.lowercased() {
+            case "authorization":
+                let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmed.lowercased().hasPrefix("bearer ") {
+                    return String(trimmed.dropFirst("Bearer ".count)).trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+                return trimmed
+            case "x-api-key":
+                return value.trimmingCharacters(in: .whitespacesAndNewlines)
+            default:
+                return nil
+            }
+        }
+    }
     
     /**
      Forwards the request to CLIProxyAPI on port 8318 (pass-through for non-thinking requests)
@@ -650,11 +702,15 @@ class ThinkingProxy {
                 // Build the forwarded request
                 var forwardedRequest = "\(method) \(path) \(version)\r\n"
                 let excludedHeaders: Set<String> = ["content-length", "host", "transfer-encoding"]
+                let excludedAuthHeaders: Set<String> = ["authorization", "x-api-key"]
                 var existingBetaHeader: String? = nil
                 
                 for (name, value) in headers {
                     let lowercasedName = name.lowercased()
                     if excludedHeaders.contains(lowercasedName) {
+                        continue
+                    }
+                    if self.openClawConfig.isActive && excludedAuthHeaders.contains(lowercasedName) {
                         continue
                     }
                     // Capture existing anthropic-beta header for merging
@@ -685,6 +741,9 @@ class ThinkingProxy {
                 
                 // Override Host header
                 forwardedRequest += "Host: \(self.targetHost):\(self.targetPort)\r\n"
+                if self.openClawConfig.isActive {
+                    forwardedRequest += "Authorization: Bearer \(self.openClawConfig.apiKey)\r\n"
+                }
                 // Always close connections - this proxy doesn't support keep-alive/pipelining
                 forwardedRequest += "Connection: close\r\n"
                 

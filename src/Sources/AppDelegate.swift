@@ -35,6 +35,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUserNoti
         serverManager.onVercelConfigChanged = { [weak self] in
             self?.syncVercelConfig()
         }
+        syncOpenClawConfig()
+        serverManager.onOpenClawConfigChanged = { [weak self] in
+            self?.syncOpenClawConfig()
+        }
         
         // Warm commonly used icons to avoid first-use disk hits
         preloadIcons()
@@ -361,6 +365,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUserNoti
         thinkingProxy.vercelConfig = VercelGatewayConfig(
             enabled: serverManager.vercelGatewayEnabled,
             apiKey: serverManager.vercelApiKey
+        )
+    }
+
+    private func syncOpenClawConfig() {
+        thinkingProxy.openClawConfig = OpenClawConfig(
+            enabled: serverManager.openClawPresetEnabled,
+            apiKey: serverManager.openClawApiKey
         )
     }
 

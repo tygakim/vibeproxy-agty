@@ -24,11 +24,12 @@ Built on [CLIProxyAPIPlus](https://github.com/router-for-me/CLIProxyAPIPlus), it
 > [!TIP]
 > 📣 **NEW: Vercel AI Gateway Integration!**<br>Route your Claude requests through [Vercel's officially sanctioned AI Gateway](https://vercel.com/docs/ai-gateway) for safer access to your Claude Max subscription. No more worrying about account risks from using OAuth tokens directly!
 >
-> **Current curated model families:** Claude Opus/Sonnet 4.5 with thinking aliases, GPT-5.x and Codex, Gemini 3 / 2.5, Qwen coder models, Kimi K2.5, GitHub Copilot, and Z.AI GLM models. 🚀
+> **Current curated model families:** Claude Opus/Sonnet 4.6 with thinking aliases, GPT-5.x and Codex, Gemini 3 / 2.5, Qwen coder models, Kimi K2.5, GitHub Copilot, and Z.AI GLM models. 🚀
 > 
 > **Setup Guides:**
 > - [Factory CLI Setup →](FACTORY_SETUP.md) - Use Factory Droids with your AI subscriptions
 > - [Amp CLI Setup →](AMPCODE_SETUP.md) - Use Amp CLI with fallback to your subscriptions
+> - [OpenClaw Setup →](OPENCLAW_SETUP.md) - Route OpenClaw agents through Antigravity-first Claude aliases on localhost
 
 ---
 
@@ -38,6 +39,7 @@ Built on [CLIProxyAPIPlus](https://github.com/router-for-me/CLIProxyAPIPlus), it
 - 🚀 **One-Click Server Management** - Start/stop the proxy server from your menu bar
 - 🔐 **Easy Authentication** - Authenticate with Codex, Claude Code, Gemini, Kimi Code, Qwen, Antigravity (OAuth), and Z.AI GLM (API key) directly from the app
 - 🛡️ **Vercel AI Gateway** - Route Claude requests through [Vercel's AI Gateway](https://vercel.com/docs/ai-gateway) for safer access to your Claude Max subscription without risking your account from direct OAuth token usage
+- 🦀 **OpenClaw Preset** - Generate localhost-only OpenClaw aliases and a dedicated local API key so OpenClaw agents can prefer Antigravity-backed Claude 4.6 first
 - 👥 **Multi-Account Support** - Connect multiple accounts per provider with automatic round-robin distribution and failover when rate-limited
 - 🎚️ **Provider Priority** - Enable/disable providers to control which models are available (instant hot reload)
 - 📊 **Real-Time Status** - Live connection status and automatic credential detection
@@ -87,6 +89,18 @@ When you click "Add Account":
 - **Toggle Server**: Click the status (Running/Stopped) to start/stop
 - **Menu Bar Icon**: Shows active/inactive state
 - **Launch at Login**: Toggle to start VibeProxy automatically
+
+### OpenClaw Quickstart
+
+If you want OpenClaw agents to spend Antigravity-backed Claude quota first:
+
+1. Enable the **OpenClaw** preset in VibeProxy Settings
+2. Add an OpenAI-compatible OpenClaw provider pointing to `http://localhost:8317/v1`
+3. Use `ag-claude-opus-4-6` as the main agent model
+4. Use `ag-claude-sonnet-4-6` as the cheaper fallback
+5. Keep `cc-claude-opus-4-6` and `cc-claude-sonnet-4-6` only for intentional direct-Claude overrides
+
+That keeps your direct Anthropic Claude quota available for Claude Code while OpenClaw routes through the Antigravity-first aliases by default. Full setup: [OpenClaw Agent Guide](OPENCLAW_SETUP.md)
 
 ## Requirements
 

@@ -85,6 +85,75 @@ struct VercelGatewayControls: View {
     }
 }
 
+struct OpenClawPresetControls: View {
+    @ObservedObject var serverManager: ServerManager
+    @State private var copied = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Toggle(isOn: $serverManager.openClawPresetEnabled) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Enable OpenClaw preset")
+                        .font(.caption)
+                    Text("Prefer Antigravity-backed Claude aliases first, while keeping direct Claude overrides available.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .toggleStyle(.checkbox)
+            .help("Generate OpenClaw-friendly Claude aliases and a local API key for localhost-only use.")
+
+            if serverManager.openClawPresetEnabled {
+                HStack(spacing: 8) {
+                    Text("Local API key")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text(serverManager.maskedOpenClawApiKey())
+                        .font(.caption.monospaced())
+                        .textSelection(.enabled)
+
+                    if copied {
+                        Text("Copied")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                    } else {
+                        Button("Copy") {
+                            let pasteboard = NSPasteboard.general
+                            pasteboard.clearContents()
+                            pasteboard.setString(serverManager.openClawApiKey, forType: .string)
+                            copied = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                copied = false
+                            }
+                        }
+                        .controlSize(.small)
+                    }
+
+                    Button("Regenerate") {
+                        serverManager.regenerateOpenClawApiKey()
+                        copied = false
+                    }
+                    .controlSize(.small)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Endpoints")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("OpenAI-compatible: http://localhost:8317/v1")
+                        .font(.caption.monospaced())
+                    Text("Anthropic-compatible: http://localhost:8317")
+                        .font(.caption.monospaced())
+                    Text("Recommended aliases: ag-claude-opus-4-6, ag-claude-sonnet-4-6, cc-claude-opus-4-6, cc-claude-sonnet-4-6")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+}
+
 /// A row displaying a service with its connected accounts and add button
 struct ServiceRow<ExtraContent: View>: View {
     let serviceType: ServiceType
@@ -411,6 +480,10 @@ struct SettingsView: View {
                         onToggleEnabled: { enabled in serverManager.setProviderEnabled("zai", enabled: enabled) },
                         onExpandChange: { expanded in expandedRowCount += expanded ? 1 : -1 }
                     ) { EmptyView() }
+                }
+
+                Section("OpenClaw") {
+                    OpenClawPresetControls(serverManager: serverManager)
                 }
             }
             .formStyle(.grouped)
